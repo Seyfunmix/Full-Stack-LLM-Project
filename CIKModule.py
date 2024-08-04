@@ -39,6 +39,52 @@ class SecEdgar:
             if ticker:
                 self.ticker_dict[ticker] = (cik, name)
 
+    # Define the base URL for accessing SEC submissions data
+    SEC_API_BASE = "https://data.sec.gov/submissions/"
+
+    # Method to get formatted JSON data from CIK number
+    def get_cik_data(self, cik):
+        headers = {'User-Agent': 'MLT SO seyioderinde72@gmail.com'}
+        # Create url variable using CIK with 10 digits and API
+        url = f"{self.SEC_API_BASE}CIK{str(cik).zfill(10)}.json"
+        # Return formatted data from url
+        response = requests.get(url, headers=headers)
+        response.raise_for_status()
+        return response.json()
+    
+    # Method to get annual filing from CIK and Year
+    def annual_filing(self, cik, year):
+        # Get data from getCIKData method
+        cik_data = self.get_cik_data(cik)
+        # If recent filing in data dictionary
+        if 'filings' in cik_data and 'recent' in cik_data['filings']:
+            # Extract recent filings
+            filings = cik_data['filings']['recent']
+            # Loop through each filing entry and look for a 10-K filing that
+            # matches given year
+            for i in range(len(filings['filingDate'])):
+                if '10-K' in filings['primaryDocDescription'][i] and filings['filingDate'][i].startswith(str(year)):
+                    # Return path for document if found
+                    return filings['primaryDocument'][i]
+        return None
+     # Method to get quartely filing from CIK, Year, and Quarter
+    def quarterly_filing(self, cik, year, quarter):
+        # Get data from getCIKData method
+        cik_data = self.get_cik_data(cik)
+        # If recent filing in data dictionary
+        if 'filings' in cik_data and 'recent' in cik_data['filings']:
+            # Extract recent filings
+            filings = cik_data['filings']['recent']
+            # Variable to search for filings with matching quarter
+            quarter_form = f'10-Q Q{quarter}'
+            # Loop through each filing entry and look for a 10-Q filing that
+            # matches given year and quarter
+            for i in range(len(filings['filingDate'])):
+                if quarter_form in filings['primaryDocDescription'][i] and filings['filingDate'][i].startswith(str(year)):
+                    # Return path for document if found
+                    return filings['primaryDocument'][i]
+        return None
+
     # Retrieve the CIK and ticker based on the company name
     def name_to_cik(self, name):
         # Retrieve data from dictionary
@@ -64,6 +110,15 @@ class SecEdgar:
 # Create an instance of the SecEdgar class using the provided URL
 se = SecEdgar('https://www.sec.gov/files/company_tickers.json')
 
-# Test values
-print(se.ticker_to_cik("ALP"))
-print(se.name_to_cik("Lifezone Metals Ltd"))
+# Example case
+cik = 320193  # Apple's CIK
+year = 2022
+quarter = 1
+
+# Get annual filing (10-K)
+annual_filing = se.annual_filing(cik, year)
+print("Annual Filing (10-K):", annual_filing)
+
+# Get quarterly filing (10-Q)
+quarterly_filing = se.quarterly_filing(cik, year, quarter)
+print("Quarterly Filing (10-Q):", quarterly_filing)
