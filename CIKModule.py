@@ -1,5 +1,9 @@
 # Import requests library to allow http request sending
 import requests
+# Import boto3 library to upload JSON files to S3 bucket
+import boto3
+
+import json
 
 # Class that handles fetching and processing JSON data from a given URL
 class SecEdgar:
@@ -12,8 +16,16 @@ class SecEdgar:
         # Fetch data from the provided URL using the requests library
         r = requests.get(self.fileurl, headers = headers)
 
+        # Log response status and content
+        print(f"Response Status Code: {r.status_code}")
+        print(f"Response Content: {r.text}")
+
         # Convert fetched JSON data into a Python dictionary and stores in self.filejson
-        self.filejson = r.json()
+        try:
+            self.filejson = r.json()
+        # Ensure response is JSON
+        except requests.exceptions.JSONDecodeError:
+            raise ValueError("Response content is not valid JSON")
 
         # Call method to process JSON data and populate dictionaries
         self.cik_json_to_dict()
@@ -106,19 +118,4 @@ class SecEdgar:
             return (f"CIK: {cik}", f"Name: {name}")
         else:
             return ("Ticker not found.", None)
-  
-# Create an instance of the SecEdgar class using the provided URL
-se = SecEdgar('https://www.sec.gov/files/company_tickers.json')
-
-# Example case
-cik = 320193  # Apple's CIK
-year = 2022
-quarter = 1
-
-# Get annual filing (10-K)
-annual_filing = se.annual_filing(cik, year)
-print("Annual Filing (10-K):", annual_filing)
-
-# Get quarterly filing (10-Q)
-quarterly_filing = se.quarterly_filing(cik, year, quarter)
-print("Quarterly Filing (10-Q):", quarterly_filing)
+        
